@@ -8,7 +8,7 @@ app.use(express.json());
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.g2hlfdf.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -24,12 +24,84 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const userCollection  =  client.db('Collection').collection('user');
+
+    app.get('/menu', async(req,res) =>{
+        const result = await userCollection.find().toArray();
+        res.send(result);
+    })
+
+    app.get('/files/:id', async (req, res) => {
+      const id = parseInt(req.params.id);
+      try {
+          const result = await userCollection.findOne({ id: id });
+          if (!result) {
+              return res.status(404).json({ error: 'Resource not found' });
+          }
+          res.json(result);
+      } catch (error) {
+          console.error('Error fetching data:', error);
+          res.status(500).json({ error: 'An error occurred while fetching data' });
+      }
+  });
+
+
+app.patch('/files/:id', async (req, res) => {
+    
+      const id = parseInt(req.params.id);
+      console.log(typeof(id));
+      const updatedFile = req.body.fileCount;
+      const filter = { id: id };
+      const numFiles = updatedFile;
+      const updateDoc = {
+        $set: {
+           files: numFiles 
+        },
+      };
+
+      const result = await userCollection.updateOne(filter, updateDoc);
+      console.log(result);
+      res.send(result);
+
+    })
+
+    
+    // app.patch('files/:id', async (req, res) => {
+    //   console.log(2);
+    //   const userId = req.params.id;
+    //   const userObjectId = new ObjectId(userId);
+    //   const updatedFile = req.body.updateData;
+      
+    //   try {
+    //     const numFiles = updatedFile;
+    //     const result = await userCollection.updateOne(
+    //       { _id: userObjectId },
+    //       { $inc: { files: numFiles } }
+    //     );
+    
+    //     if (result.modifiedCount > 0) {
+    //       res.json({ message: 'User file count updated successfully' });
+    //     } else {
+    //       res.json({ message: 'No changes were made to user file count' });
+    //     }
+    //   } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ message: 'An error occurred while updating user file count' });
+    //   }
+    // });
+    
+
+
+
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
